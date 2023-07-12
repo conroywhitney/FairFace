@@ -122,6 +122,11 @@ def predidct_age_gender_race(save_prediction_at, imgs_path = 'cropped_faces/'):
         gender_pred = np.argmax(gender_score)
         age_pred = np.argmax(age_score)
 
+        race_confidence = race_score[race_pred]
+        gender_confidence = gender_score[gender_pred]
+        age_confidence = age_score[age_pred]
+        overall_confidence = "high" if (race_confidence >= 0.35 and gender_confidence >= 0.65 and age_confidence >= 0.50) else "low"
+
         race_scores_fair.append(race_score)
         gender_scores_fair.append(gender_score)
         age_scores_fair.append(age_score)
@@ -131,8 +136,7 @@ def predidct_age_gender_race(save_prediction_at, imgs_path = 'cropped_faces/'):
         age_preds_fair.append(age_pred)
 
         output_filename = str(race_pred) + "_" + str(gender_pred) + "_" + str(age_pred) + "_" + img_name.split("/")[-1]
-        print(output_filename)
-        os.rename(img_name, os.path.join("outputs", output_filename))
+        os.rename(img_name, os.path.join("outputs_" + overall_confidence, output_filename))
 
         # fair 4 class
         outputs = model_fair_4(image)
