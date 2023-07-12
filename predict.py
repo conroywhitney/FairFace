@@ -125,7 +125,7 @@ def predidct_age_gender_race(save_prediction_at, imgs_path = 'cropped_faces/'):
         race_confidence = race_score[race_pred]
         gender_confidence = gender_score[gender_pred]
         age_confidence = age_score[age_pred]
-        overall_confidence = "high" if (race_confidence >= 0.35 and gender_confidence >= 0.65 and age_confidence >= 0.50) else "low"
+        overall_confidence = "high" if (age_confidence >= 0.75) else "low"
 
         race_scores_fair.append(race_score)
         gender_scores_fair.append(gender_score)
