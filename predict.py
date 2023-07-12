@@ -59,17 +59,18 @@ def detect_face(image_paths,  SAVE_DETECTED_AT, default_max_size=800,size = 300,
 
 def predidct_age_gender_race(save_prediction_at, imgs_path = 'cropped_faces/'):
     img_names = [os.path.join(imgs_path, x) for x in os.listdir(imgs_path)]
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("mps")
 
     model_fair_7 = torchvision.models.resnet34(pretrained=True)
     model_fair_7.fc = nn.Linear(model_fair_7.fc.in_features, 18)
-    model_fair_7.load_state_dict(torch.load('fair_face_models/fairface_alldata_20191111.pt'))
+    model_fair_7.load_state_dict(torch.load('res34_fair_align_multi_7_20190809.pt', map_location=device))
     model_fair_7 = model_fair_7.to(device)
     model_fair_7.eval()
 
     model_fair_4 = torchvision.models.resnet34(pretrained=True)
     model_fair_4.fc = nn.Linear(model_fair_4.fc.in_features, 18)
-    model_fair_4.load_state_dict(torch.load('fair_face_models/fairface_alldata_4race_20191111.pt'))
+    model_fair_4.load_state_dict(torch.load('res34_fair_align_multi_4_20190809.pt', map_location=device))
     model_fair_4 = model_fair_4.to(device)
     model_fair_4.eval()
 
@@ -92,12 +93,12 @@ def predidct_age_gender_race(save_prediction_at, imgs_path = 'cropped_faces/'):
     race_preds_fair_4 = []
 
     for index, img_name in enumerate(img_names):
-        if index % 1000 == 0:
+        if index % 100 == 0:
             print("Predicting... {}/{}".format(index, len(img_names)))
 
         face_names.append(img_name)
-        image = dlib.load_rgb_image(img_name)
-        image = trans(image)
+        orig_image = dlib.load_rgb_image(img_name)
+        image = trans(orig_image)
         image = image.view(1, 3, 224, 224)  # reshape image to match model dimensions (1 batch size)
         image = image.to(device)
 
@@ -137,6 +138,10 @@ def predidct_age_gender_race(save_prediction_at, imgs_path = 'cropped_faces/'):
 
         race_scores_fair_4.append(race_score)
         race_preds_fair_4.append(race_pred)
+
+        output_filename = str(age_pred) + "_" + str(gender_pred) + "_" + str(race_pred) + "_" + img_name.split("/")[-1]
+        print(output_filename)
+        dlib.save_image(orig_image, os.path.join("outputs", output_filename))
 
     result = pd.DataFrame([face_names,
                            race_preds_fair,
@@ -206,13 +211,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv', dest='input_csv', action='store',
                         help='csv file of image path where col name for image path is "img_path')
-    dlib.DLIB_USE_CUDA = True
+    dlib.DLIB_USE_CUDA = False
     print("using CUDA?: %s" % dlib.DLIB_USE_CUDA)
     args = parser.parse_args()
-    SAVE_DETECTED_AT = "detected_faces"
+    SAVE_DETECTED_AT = "000000"
     ensure_dir(SAVE_DETECTED_AT)
     imgs = pd.read_csv(args.input_csv)['img_path']
-    detect_face(imgs, SAVE_DETECTED_AT)
+    # detect_face(imgs, SAVE_DETECTED_AT)
     print("detected faces are saved at ", SAVE_DETECTED_AT)
     #Please change test_outputs.csv to actual name of output csv. 
-    predidct_age_gender_race("test_outputs.csv", SAVE_DETECTED_AT)
+    predidct_age_gender_race("000000_output.csv", SAVE_DETECTED_AT)
