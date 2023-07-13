@@ -11,6 +11,7 @@ from torchvision import datasets, models, transforms
 import dlib
 import os
 import argparse
+import time
 
 def rect_to_bb(rect):
 	# take a bounding predicted by dlib and convert it
@@ -59,17 +60,22 @@ def detect_face(image_paths,  SAVE_DETECTED_AT, default_max_size=800,size = 300,
 
 def predidct_age_gender_race(save_prediction_at, imgs_path = 'cropped_faces/'):
     img_names = [os.path.join(imgs_path, x) for x in os.listdir(imgs_path)]
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
+    # remove .DS_Store
+    img_names = [x for x in img_names if (x.split("/")[-1] != ".DS_Store" and x.split("/")[-1] != "LICENSE.txt")]
+    
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("mps")
 
     model_fair_7 = torchvision.models.resnet34(pretrained=True)
     model_fair_7.fc = nn.Linear(model_fair_7.fc.in_features, 18)
-    model_fair_7.load_state_dict(torch.load('fair_face_models/fairface_alldata_20191111.pt'))
+    model_fair_7.load_state_dict(torch.load('res34_fair_align_multi_7_20190809.pt', map_location=device))
     model_fair_7 = model_fair_7.to(device)
     model_fair_7.eval()
 
     model_fair_4 = torchvision.models.resnet34(pretrained=True)
     model_fair_4.fc = nn.Linear(model_fair_4.fc.in_features, 18)
-    model_fair_4.load_state_dict(torch.load('fair_face_models/fairface_alldata_4race_20191111.pt'))
+    model_fair_4.load_state_dict(torch.load('res34_fair_align_multi_4_20190809.pt', map_location=device))
     model_fair_4 = model_fair_4.to(device)
     model_fair_4.eval()
 
@@ -92,7 +98,7 @@ def predidct_age_gender_race(save_prediction_at, imgs_path = 'cropped_faces/'):
     race_preds_fair_4 = []
 
     for index, img_name in enumerate(img_names):
-        if index % 1000 == 0:
+        if index % 100 == 0:
             print("Predicting... {}/{}".format(index, len(img_names)))
 
         face_names.append(img_name)
@@ -203,16 +209,11 @@ def ensure_dir(directory):
 if __name__ == "__main__":
     #Please create a csv with one column 'img_path', contains the full paths of all images to be analyzed.
     #Also please change working directory to this file.
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--csv', dest='input_csv', action='store',
-                        help='csv file of image path where col name for image path is "img_path')
-    dlib.DLIB_USE_CUDA = True
-    print("using CUDA?: %s" % dlib.DLIB_USE_CUDA)
-    args = parser.parse_args()
+    dlib.DLIB_USE_CUDA = False
     SAVE_DETECTED_AT = "detected_faces"
     ensure_dir(SAVE_DETECTED_AT)
-    imgs = pd.read_csv(args.input_csv)['img_path']
+    imgs = pd.read_csv("inputs.csv")['img_path']
     detect_face(imgs, SAVE_DETECTED_AT)
     print("detected faces are saved at ", SAVE_DETECTED_AT)
     #Please change test_outputs.csv to actual name of output csv. 
-    predidct_age_gender_race("test_outputs.csv", SAVE_DETECTED_AT)
+    predidct_age_gender_race("outputs_" + str(time.time()) + ".csv", SAVE_DETECTED_AT)

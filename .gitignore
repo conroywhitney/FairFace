@@ -1,0 +1,11 @@
+.DS_Store
+detected_faces/
+inputs.csv
+inputs/
+outputs_*.csv
+outputs/
+outputs_*/
+.history/
+
+res34_fair_align_multi_4_20190809.pt
+res34_fair_align_multi_7_20190809.pt
